@@ -1,6 +1,7 @@
 
 __all__ = (
     'action',
+    'title',
     )
 
 import sys
@@ -14,6 +15,10 @@ def cprint(color, *args, **kw):
     ff.write(b'\033[' + color + b'm')
     print(*args, **kw)
     ff.write(RESET)
+    ff.flush()
+
+def title(value):
+    cprint(TITLE, '==>', value)
 
 class action(object):
 
@@ -25,7 +30,7 @@ class action(object):
     def __enter__(self):
         if self._time:
             raise RuntimeError("Can't enter same action twice")
-        cprint(TITLE, '==> ' + self.title, end=' ... ')
+        cprint(TITLE, '==>', self.title, end=' ... ')
         self._time = time.time()
         return self
 

@@ -2,8 +2,9 @@ import urllib.request
 import os
 
 from .rorepo import ReadonlyRepo
-from .display import action
+from .display import action, title
 from . import aur
+from . import pacman
 
 REPO_DIR = '/var/lib/pacman/sync'
 
@@ -14,24 +15,31 @@ def load_repos():
     return repos
 
 def install_packages(names):
+    stock = {}
     with action('Searching for stock packages') as act:
         repos = load_repos()
-        stock = {}
         for r in repos:
             for n in names:
                 p = r.packages.get(n)
                 if p is not None:
                     stock[n] = p
         act.add('found {0}'.format(len(stock)))
-    with action('Searching in AUR') as act:
-        builds = {}
-        for n in names:
-            try:
-                info = aur.request('info', n)
-            except LookupError:
-                continue
-            builds[n] = info
-        act.add('found {0}'.format(len(builds)))
+
+    builds = {}
+    if set(names) - set(stock):
+        with action('Searching in AUR') as act:
+            for n in names:
+                try:
+                    info = aur.request('info', n)
+                except LookupError:
+                    continue
+                builds[n] = info
+            act.add('found {0}'.format(len(builds)))
+    else:
+        if options.verbosity:
+            title("All names found in packages, starting pacman")
+        pacman.install(names)
+        return
     print("STOCK", stock)
     print("AUR", builds)
 
