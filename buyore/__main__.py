@@ -9,9 +9,14 @@ def load_repos():
     repos = []
     for i in os.listdir(REPO_DIR):
         repos.append(ReadonlyRepo(REPO_DIR+'/'+i))
+    return repos
 
 def install_packages(names):
     repos = load_repos()
+    for r in repos:
+        for p in r.packages:
+            if p in names:
+                print(p)
 
 def get_options():
     import argparse

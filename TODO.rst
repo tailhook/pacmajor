@@ -19,6 +19,7 @@ Stage 2
 * better upgrade of patched packages
 * .so dependency tracking
 * .py dependency tracking
+* allow to rename files in case of conflict
 
 Stage 3
 -------
