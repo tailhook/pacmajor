@@ -8,17 +8,30 @@ import sys
 import time
 
 TITLE = b'32'
+CMDLINE = b'34'
 RESET = b'\033[0m'
 
+verbosity = 0
+colorize = True
+
 def cprint(color, *args, **kw):
-    ff = kw.get('file', sys.stdout).buffer
-    ff.write(b'\033[' + color + b'm')
+    if not verbosity:
+        return
+    if colorize:
+        ff = kw.get('file', sys.stdout).buffer
+        ff.write(b'\033[' + color + b'm')
     print(*args, **kw)
-    ff.write(RESET)
-    ff.flush()
+    if colorize:
+        ff.write(RESET)
+        ff.flush()
 
 def title(value):
-    cprint(TITLE, '==>', value)
+    if verbosity:
+        cprint(TITLE, '==>', value)
+
+def commandline(cmdline):
+    if verbosity >= 2:
+        cprint(CMDLINE, '  !', *cmdline)
 
 class action(object):
 

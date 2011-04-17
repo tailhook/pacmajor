@@ -43,8 +43,18 @@ def install_packages(names):
     print("STOCK", stock)
     print("AUR", builds)
 
+
 def get_options():
     import argparse
+
+    class increment(argparse.Action):
+        def __call__(self, parser, ns, values, optstr=None):
+            setattr(ns, self.dest, getattr(ns, self.dest) + 1)
+
+    class decrement(argparse.Action):
+        def __call__(self, parser, ns, values, optstr=None):
+            setattr(ns, self.dest, getattr(ns, self.dest) - 1)
+
     ap = argparse.ArgumentParser()
     ap.add_argument(
         help="Packages to install",
@@ -52,18 +62,30 @@ def get_options():
     ap.add_argument('--batch',
         help="Disable interactive mode",
         dest="interactive", default=True, action='store_false')  # TODO: auto
-    ap.add_argument('-v', '--verbose',
+    ap.add_argument('-v', '--verbose', nargs=0,
         help="Increase verbosity",
-        dest="verbosity", default=1, action="store_true")
-    ap.add_argument('-q', '--quiet',
+        dest="verbosity", default=1, action=increment)
+    ap.add_argument('-q', '--quiet', nargs=0,
         help="Decrease verbosity",
-        dest="verbosity", action="store_false")
+        dest="verbosity", action=decrement)
+    ap.add_argument('--color',
+        help="Colorize output",
+        dest="colorize", default=True, action="store_true")
+    ap.add_argument('-C', '--no-color',
+        help="Do not colorize output",
+        dest="colorize", action="store_false")
     return ap
 
 def main():
+    from . import display
     global options
+
     ap = get_options()
     options = ap.parse_args()
+
+    display.verbosity = options.verbosity
+    display.colorize = options.colorize
+
     if options.packages:
         install_packages(options.packages)
 

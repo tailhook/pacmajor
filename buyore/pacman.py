@@ -1,5 +1,8 @@
 import subprocess
+from .display import commandline
 
 def install(names):
-    subprocess.Popen(['sudo', 'pacman', '-S'] + names).wait()
+    cmdline = ['sudo', 'pacman', '-S'] + names
+    commandline(cmdline)
+    subprocess.Popen(cmdline).wait()
 
