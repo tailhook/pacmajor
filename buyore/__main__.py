@@ -2,9 +2,10 @@ import urllib.request
 import os
 
 from .rorepo import ReadonlyRepo
-from .display import action, title
+from .display import action, section, title
 from . import aur
 from . import pacman
+from . import pkgbuild
 
 REPO_DIR = '/var/lib/pacman/sync'
 
@@ -16,9 +17,11 @@ def load_repos():
 
 def install_packages(names):
     stock = {}
+    all_stock = set()
     with action('Searching for stock packages') as act:
         repos = load_repos()
         for r in repos:
+            all_stock.update(r.packages)
             for n in names:
                 p = r.packages.get(n)
                 if p is not None:
@@ -40,9 +43,34 @@ def install_packages(names):
             title("All names found in packages, starting pacman")
         pacman.install(names)
         return
-    print("STOCK", stock)
-    print("AUR", builds)
-
+    with section('Gathering PKGBUILDs and dependencies') as act:
+        with pkgbuild.tmpdb() as pdb:
+            future = list(builds.keys())
+            already = set(future)
+            stock_deps = []
+            targets = []
+            deps = []
+            while future:
+                name = future.pop()
+                if name in all_stock:
+                    stock_deps.add(name)
+                    continue
+                pkg = pdb.fetch(name)
+                for dep in pkg.makedeps:
+                    if dep in already:
+                        continue
+                    future.append(dep)
+                for dep in pkg.depends:
+                    if dep in already:
+                        continue
+                    future.append(dep)
+                if pkg.name in builds:
+                    targets.append(pkg)
+                else:
+                    deps.append(pkg)
+        print("Stock depedencies", stock_deps)
+        print("AUR dependencies", deps)
+        print("Targets", targets)
 
 def get_options():
     import argparse

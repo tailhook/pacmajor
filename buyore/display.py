@@ -55,3 +55,26 @@ class action(object):
         if not self._time:
             raise RuntimeError("Bad time for adding info")
         cprint(TITLE, text, end=' ')
+
+class section(object):
+
+    def __init__(self, title):
+        self.title = title
+        self._inside = False
+        self._time = None
+
+    def __enter__(self):
+        if self._time:
+            raise RuntimeError("Can't enter same action twice")
+        cprint(TITLE, '==>', self.title, end=' ...\n')
+        self._time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_value, ext_tb):
+        d = time.time() - self._time
+        cprint(TITLE, '--> done in {:.2f}s'.format(d))
+
+    def add(self, text):
+        if not self._time:
+            raise RuntimeError("Bad time for adding info")
+        cprint(TITLE, '   ', text)
