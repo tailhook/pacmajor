@@ -53,10 +53,10 @@ def install_packages(names):
             while future:
                 name = future.pop()
                 if name in all_stock:
-                    stock_deps.add(name)
+                    stock_deps.append(name)
                     continue
                 pkg = pdb.fetch(name)
-                for dep in pkg.makedeps:
+                for dep in pkg.makedepends:
                     if dep in already:
                         continue
                     future.append(dep)

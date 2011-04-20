@@ -1,13 +1,22 @@
 import tempfile
 import shutil
-from tokenize import tokenize
 
 from .util import runcommand
+from . import parser
 
 class PkgBuild(object):
     def __init__(self, file):
-        for (typ, val, (row, col), (er, ec), ln) in tokenize(file.readline):
-            pass
+        values = {}
+        for line in parser.parse(file):
+            if isinstance(line, parser.VarValue):
+                values[line.name.value] = line.interpolate(values)
+        import pprint; pprint.pprint(values)
+        self.vars = values
+        self.makedepends = [k.split('>=')[0]
+            for k in self.vars.get('makedepends', ())]
+        self.depends = [k.split('>=')[0]
+            for k in self.vars.get('makedepends', ())]
+        self.name = self.vars['pkgname']
 
 class TemporaryDB(object):
     def __init__(self):
