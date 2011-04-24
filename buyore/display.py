@@ -225,6 +225,18 @@ class Menu(object):
             if i.startswith(prefix):
                 yield i
 
+    def letters_to_names(self, letters):
+        if letters:
+            mapping = dict(letterify(self.items()))
+            for i in letters:
+                item = mapping.get(i)
+                if item is None:
+                    continue
+                yield item[0]
+        else:
+            for item in self.items():
+                yield item[0]
+
     def run(self):
         while True:
             try:

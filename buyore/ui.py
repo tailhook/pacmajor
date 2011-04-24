@@ -3,7 +3,7 @@ import os
 
 import archive
 
-from .display import Menu, DoneException, extractcommands, letterify
+from .display import Menu, DoneException, extractcommands
 
 @extractcommands
 class PkgbuildMenu(Menu):
@@ -39,6 +39,12 @@ class PkgbuildMenu(Menu):
         """set diff command"""
         self.manager.toolset.update('diff', command)
 
+    def cmd_namcap(self, letters:'LETTERS') -> 'namcap':
+        """check PKGBUILD with namcap"""
+        print(list(self.letters_to_names(letters)))
+        self.manager.toolset.namcap(*(self.pkgdb.file_path(*item)
+            for item in self.letters_to_names(letters)))
+
     def cmd_done(self) -> 'done':
         """build packages"""
         raise DoneException()
@@ -54,12 +60,7 @@ class PkgbuildMenu(Menu):
                 if os.path.exists(rn + '.orig'):
                     self.manager.toolset.diff(rn+'.orig', rn, filter=pager)
         else:
-            chars = dict(letterify(self.all_files))
-            for c in letters or '':
-                try:
-                    pn, fn = chars[c]
-                except KeyError:
-                    continue
+            for pn, fn in self.letters_to_names(letters):
                 rn = self.pkgdb.file_path(pn, fn)
                 if os.path.exists(rn + '.orig'):
                     self.manager.toolset.diff(rn+'.orig', rn, filter=pager)
@@ -83,18 +84,6 @@ class InstallMenu(Menu):
     def cmd_install(self) -> 'inst':
         """install packages"""
         raise DoneException()
-
-    def letters_to_names(self, letters):
-        if letters:
-            mapping = dict(letterify(self.names))
-            for i in letters:
-                name = mapping.get(i)
-                if name is None:
-                    continue
-                yield name
-        else:
-            for name in self.names:
-                yield name
 
     def cmd_list(self, letters:'LETTERS') -> 'l':
         """list package contents"""
