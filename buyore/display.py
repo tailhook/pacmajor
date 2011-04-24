@@ -10,11 +10,9 @@ import time
 
 TITLE = b'32'
 CMDLINE = b'34'
+DEBUG = b'34'
 RESET = b'\033[0m'
 LETTERS = 'abcdefghijklmnoprstuvwxyz'
-
-verbosity = 0
-colorize = True
 
 FILE_NEW = 0
 FILE_VIEWED = 1
@@ -34,101 +32,131 @@ class CommandExecute(Exception):
 def letterify(iter):
     return zip(LETTERS, iter)
 
-def cprint(color, *args, **kw):
-    if not verbosity:
-        return
-    if colorize:
-        ff = kw.get('file', sys.stdout).buffer
-        ff.write(b'\033[' + color + b'm')
-    print(*args, **kw)
-    if colorize:
-        ff.write(RESET)
-        ff.flush()
+class DisplayObject(object):
 
-def pkgfile(mode, pkgname, fn):
-    if fn == 'PKGBUILD':
-        return modes[mode]+' \033[37m' + pkgname + '\033[34m/' + fn + '\033[0m'
-    else:
-        return modes[mode]+' '+' '*len(pkgname) + ' \033[34m' + fn + '\033[0m'
+    def cprint(self, color, *args, **kw):
+        if not self.verbosity:
+            return
+        if self.color:
+            ff = kw.get('file', sys.stdout).buffer
+            ff.write(b'\033[' + color + b'm')
+        print(*args, **kw)
+        if self.color:
+            ff.write(RESET)
+            ff.flush()
 
-def title(value):
-    if verbosity:
-        cprint(TITLE, '==>', value)
+    def pkgfile(self, mode, pkgname, fn):
+        if self.color:
+            if fn == 'PKGBUILD':
+                return modes[mode]+' \033[37m' + pkgname + '\033[34m/' + fn + '\033[0m'
+            else:
+                return modes[mode]+' '+' '*len(pkgname) + ' \033[34m' + fn + '\033[0m'
+        else:
+            return modes[mode]+' ' + pkgname + '/' + fn
 
-def commandline(cmdline):
-    if verbosity >= 2:
-        cprint(CMDLINE, '  !', *cmdline)
-def print_item(*a, **kw):
-    print('   ', *a, **kw)
+    def title(self, value):
+        if self.verbosity:
+            self.cprint(TITLE, '==>', value)
 
-class action(object):
+    def commandline(self, cmdline):
+        if self.verbosity >= 2:
+            self.cprint(CMDLINE, '  !', *cmdline)
 
-    def __init__(self, title):
-        self.title = title
-        self._inside = False
-        self._time = None
+    def print_item(self, *a, **kw):
+        print('   ', *a, **kw)
 
-    def __enter__(self):
-        if self._time:
-            raise RuntimeError("Can't enter same action twice")
-        cprint(TITLE, '==>', self.title, end=' ... ')
-        self._time = time.time()
-        return self
+    def debug(self, *a, **kw):
+        if self.verbosity > 2:
+            self.cprint(DEBUG, '  -', *a, **kw)
 
-    def __exit__(self, exc_type, exc_value, ext_tb):
-        d = time.time() - self._time
-        cprint(TITLE, ' ... done in {:.2f}s'.format(d))
+    def tool_selected(self, name, cmdline):
+        if self.verbosity > 1:
+            self.cprint(CMDLINE, '  *',
+                'Tool `{0}`, selected:'.format(name), cmdline)
 
-    def add(self, text):
-        if not self._time:
-            raise RuntimeError("Bad time for adding info")
-        cprint(TITLE, text, end=' ')
+    def set_completer(self, func):
+        import readline
+        readline.parse_and_bind('tab: complete')
+        readline.set_completer(func)
 
-class section(object):
-
-    def __init__(self, title):
-        self.title = title
-        self._inside = False
-        self._time = None
-
-    def __enter__(self):
-        if self._time:
-            raise RuntimeError("Can't enter same action twice")
-        cprint(TITLE, '==>', self.title, end=' ...\n')
-        self._time = time.time()
-        return self
-
-    def __exit__(self, exc_type, exc_value, ext_tb):
-        d = time.time() - self._time
-        cprint(TITLE, '--> done in {:.2f}s'.format(d))
-
-    def add(self, text):
-        if not self._time:
-            raise RuntimeError("Bad time for adding info")
-        cprint(TITLE, '   ', text)
-
-def menu(title, names, **cmds):
-    attr = tty.tcgetattr(sys.stdin)
-    try:
-        cprint(TITLE, '==>', title)
-        items = {}
-        for c, (n, t) in letterify(names):
-            print('    ', c, t)
-            items[c] = n
-        for k, name in cmds.items():
-            print('   ', ':'+k, name)
-        tty.setcbreak(sys.stdin)
-        ch = sys.stdin.read(1)
-        if ch == ':':
-            sys.stdout.write(':')
-            sys.stdout.flush()
+    def menu(self, title, names, cmds=None):
+        attr = tty.tcgetattr(sys.stdin)
+        try:
+            self.cprint(TITLE, '==>', title)
+            items = {}
+            for c, (n, t) in letterify(names):
+                print('    ', c, t)
+                items[c] = n
+            if cmds:
+                mlen = max(len(mv)+len(k) for k, mv, name in cmds) + 1
+                for k, mv, name in cmds:
+                    print('    :{0:{1}} {2}'.format(k+' '+mv, mlen, name))
+            tty.setcbreak(sys.stdin)
+            ch = sys.stdin.read(1)
+            if ch == ':':
+                tty.tcsetattr(sys.stdin, tty.TCSADRAIN, attr)
+                cmd = input(':')
+                parts = cmd.strip().split(None, 1)
+                if not parts:
+                    return None
+                raise CommandExecute(*parts)
+            elif ch in items:
+                return items[ch]
+        finally:
             tty.tcsetattr(sys.stdin, tty.TCSADRAIN, attr)
-            cmd = sys.stdin.readline()
-            parts = cmd.strip().split(None, 1)
-            raise CommandExecute(*parts)
-        elif ch in items:
-            return items[ch]
-    finally:
-        tty.tcsetattr(sys.stdin, tty.TCSADRAIN, attr)
 
+    def action(self, title):
+        return Action(self, title)
+
+    def section(self, title):
+        return Section(self, title)
+
+
+class Action(object):
+
+    def __init__(self, disp, title):
+        self.disp = disp
+        self.title = title
+        self._inside = False
+        self._time = None
+
+    def __enter__(self):
+        if self._time:
+            raise RuntimeError("Can't enter same action twice")
+        self.disp.cprint(TITLE, '==>', self.title, end=' ... ')
+        self._time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_value, ext_tb):
+        d = time.time() - self._time
+        self.disp.cprint(TITLE, ' ... done in {:.2f}s'.format(d))
+
+    def add(self, text):
+        if not self._time:
+            raise RuntimeError("Bad time for adding info")
+        self.disp.cprint(TITLE, text, end=' ')
+
+class Section(object):
+
+    def __init__(self, disp, title):
+        self.disp = disp
+        self.title = title
+        self._inside = False
+        self._time = None
+
+    def __enter__(self):
+        if self._time:
+            raise RuntimeError("Can't enter same action twice")
+        self.disp.cprint(TITLE, '==>', self.title, end=' ...\n')
+        self._time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_value, ext_tb):
+        d = time.time() - self._time
+        self.disp.cprint(TITLE, '--> done in {:.2f}s'.format(d))
+
+    def add(self, text):
+        if not self._time:
+            raise RuntimeError("Bad time for adding info")
+        self.disp.cprint(TITLE, '   ', text)
 

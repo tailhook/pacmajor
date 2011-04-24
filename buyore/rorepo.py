@@ -3,8 +3,8 @@ from collections import defaultdict
 
 import archive
 
-LOCAL_REPO = '/var/lib/pacman/local'
-REPO_DIR = '/var/lib/pacman/sync'
+LOCAL_REPO = 'var/lib/pacman/local'
+REPO_DIR = 'var/lib/pacman/sync'
 
 def parse_properties(f):
     body = f.read()
@@ -47,12 +47,13 @@ class Repo(object):
 
 
 class LocalRepo(Repo):
-    def __init__(self):
+    def __init__(self, root):
         super().__init__()
-        for rawname in os.listdir(LOCAL_REPO):
-            with open(os.path.join(LOCAL_REPO, rawname, 'desc'), 'rb') as file:
+        dir = root + LOCAL_REPO
+        for rawname in os.listdir(dir):
+            with open(os.path.join(dir, rawname, 'desc'), 'rb') as file:
                 entry = parse_properties(file)
-            with open(os.path.join(LOCAL_REPO, rawname, 'files'), 'rb') as file:
+            with open(os.path.join(dir, rawname, 'files'), 'rb') as file:
                 entry.update(parse_properties(file))
             self.add_package(Package(**entry))
 
@@ -73,17 +74,9 @@ class ReadonlyRepo(Repo):
             p = Package(**props)
             self.add_package(p)
 
-def load_repos():
-    global repos
+def load_repos(root):
     repos = {}
-    for i in os.listdir(REPO_DIR):
-        repos[i] = ReadonlyRepo(REPO_DIR+'/'+i)
+    for i in os.listdir(root + REPO_DIR):
+        repos[i] = ReadonlyRepo(root + REPO_DIR+'/'+i)
     return repos
 
-def local_repo():
-    global localrepo
-    try:
-        return localrepo
-    except NameError:
-        localrepo = LocalRepo()
-        return localrepo

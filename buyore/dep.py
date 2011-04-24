@@ -11,10 +11,10 @@ class DependencyChecker(object):
         self.aur_deps = []
         self.targetpkgs = []
 
-    def check(self, pkgdb):
+    def check(self, manager, pkgdb):
         future = list(self.targets)
         already = set(future)
-        localrepo = rorepo.local_repo()
+        localrepo = manager.localrepo
         all_stock = defaultdict(list)
         for k, v in all_stock.items():
             all_stock[k].extend(v)
