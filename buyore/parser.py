@@ -11,8 +11,9 @@ re_tokenize = re.compile(r"""
     | (?P<var>\$[_a-zA-Z][a-zA-Z0-9_]*)
     | (?P<op>[=|>&])
     | (?P<ws>\s+ | \\\n | \\\r\n | \\\r)
+    | (?P<comment>\#.*$)
     | (?P<word>[^\s$=|>&()]+)
-    """, re.X)
+    """, re.X|re.M)
 
 class Token(object):
     __slots__ = ('typ', 'value', 'lineno', 'offset')
@@ -139,7 +140,7 @@ def parse(file):
 def _parse(tok):
     while True:
         name = next(tok)
-        if name.typ in ('newline', 'ws'):
+        if name.typ in ('newline', 'ws', 'comment'):
             continue
         if name.value == '{':
             break

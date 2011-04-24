@@ -2,7 +2,7 @@ from .util import Toolset
 from .display import DisplayObject
 from .dep import DependencyChecker
 from .rorepo import LocalRepo, load_repos
-from .ui import PkgbuildMenu
+from .ui import PkgbuildMenu, InstallMenu
 from . import aur
 from . import pkgbuild
 
@@ -62,4 +62,25 @@ class Buyore(DisplayObject):
                 self.title("Installing following packages")
                 for pkg in dep.stock_deps:
                     print_item(pkg.name)
-            PkgbuildMenu(self, dep.aur_deps + dep.targetpkgs, pdb).run()
+            PkgbuildMenu(self, pdb, dep.aur_deps + dep.targetpkgs).run()
+            # TODO: recheck dependencies
+            for typ, pkgs in dep.stage_sort():
+                if typ == 'stock':
+                    normal = [p for p in pkgs if p in stock]
+                    deps = [p for p in pkgs if p not in stock]
+                    if normal:
+                        self.toolset.install_sync(*pkgs)
+                    if deps:
+                        self.toolset.install_sync('--asdeps', *pkgs)
+                elif typ == 'aur':
+                    for name in pkgs:
+                        pdb.build_package(name)
+                    InstallMenu(self, pdb, pkgs).run()
+                    normal = [pdb.package_file(p) for p in pkgs if p in builds]
+                    deps = [pdb.package_file(p) for p in pkgs if p not in builds]
+                    if normal:
+                        self.toolset.install_file(*normal)
+                    if deps:
+                        self.toolset.install_file('--asdeps', *deps)
+                else:
+                    raise NotImplementedError(typ)

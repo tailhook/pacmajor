@@ -9,6 +9,8 @@ Stage 1
 * store changes and diff
 * store package
 * add package to repo
+* opening other files (patches, etc...)
+* implement result checking of some commands
 
 Stage 2
 -------

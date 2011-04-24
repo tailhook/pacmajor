@@ -160,3 +160,90 @@ class Section(object):
             raise RuntimeError("Bad time for adding info")
         self.disp.cprint(TITLE, '   ', text)
 
+
+class DoneException(Exception):
+    pass
+
+def _mkcmd(fun, cmdarg, argkey):
+    if cmdarg and argkey:
+        def cmd(self, cmd, arg):
+            return fun(self, **{cmdarg: cmd, argkey: arg})
+    elif cmdarg:
+        def cmd(self, cmd, arg):
+            return fun(self, **{cmdarg: cmd})
+    elif argkey:
+        def cmd(self, cmd, arg):
+            return fun(self, **{argkey: arg})
+    else:
+        def cmd(self, cmd, arg):
+            return fun(self)
+    return cmd
+
+def extractcommands(cls):
+    cmddesc = []
+    cmdhand = {}
+    for funcname in dir(cls):
+        if not funcname.startswith('cmd_'):
+            continue
+        fun = getattr(cls, funcname)
+        aliases = fun.__annotations__.get('return')
+        help = bool(aliases)
+        if not aliases:
+            aliases = (funcname[len('cmd_'):],)
+        elif isinstance(aliases, str):
+            aliases = (aliases,)
+        argname = ""
+        argkey = None
+        cmdarg = None
+        for k, v in fun.__annotations__.items():
+            if k == 'return':
+                continue
+            if isinstance(v, str):
+                if v:
+                    argkey = k
+                    argname = v
+                else:
+                    cmdarg = k
+        if help:
+            cmddesc.append((aliases[0], argname, fun.__doc__))
+        cmd = _mkcmd(fun, cmdarg, argkey)
+        for alias in aliases:
+            cmdhand[alias] = cmd
+    cls.command_descr = cmddesc
+    cls.command_handlers = cmdhand
+    return cls
+
+class Menu(object):
+
+    def __init__(self, manager, title):
+        self.manager = manager
+        self.title = title
+
+    def completer(self, prefix, state):
+        # TODO: explore why it doesn't get called
+        for i in cmdhand:
+            if i.startswith(prefix):
+                yield i
+
+    def run(self):
+        while True:
+            try:
+                self.manager.set_completer(self.completer)
+                res = self.manager.menu(self.title, self.items(),
+                    self.command_descr)
+            except KeyboardInterrupt:
+                self.cmd_quit()
+            except CommandExecute as cmd:
+                try:
+                    func = self.command_handlers[cmd.name]
+                except KeyError:
+                    pass
+                else:
+                    try:
+                        func(self, cmd.name, cmd.arg)
+                    except DoneException:
+                        break
+            else:
+                if not res:
+                    continue
+                self.select(res)

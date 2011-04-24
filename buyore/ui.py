@@ -1,64 +1,13 @@
 import sys
 import os
 
-from .display import CommandExecute, letterify
-
-class DoneException(Exception):
-    pass
-
-def _mkcmd(fun, cmdarg, argkey):
-    if cmdarg and argkey:
-        def cmd(self, cmd, arg):
-            return fun(self, **{cmdarg: cmd, argkey: arg})
-    elif cmdarg:
-        def cmd(self, cmd, arg):
-            return fun(self, **{cmdarg: cmd})
-    elif argkey:
-        def cmd(self, cmd, arg):
-            return fun(self, **{argkey: arg})
-    else:
-        def cmd(self, cmd, arg):
-            return fun(self)
-    return cmd
-
-def extractcommands(cls):
-    cmddesc = []
-    cmdhand = {}
-    for funcname in dir(cls):
-        if not funcname.startswith('cmd_'):
-            continue
-        fun = getattr(cls, funcname)
-        aliases = fun.__annotations__.get('return')
-        help = bool(aliases)
-        if not aliases:
-            aliases = (funcname[len('cmd_'):],)
-        elif isinstance(aliases, str):
-            aliases = (aliases,)
-        argname = ""
-        argkey = None
-        cmdarg = None
-        for k, v in fun.__annotations__.items():
-            if k == 'return':
-                continue
-            if isinstance(v, str):
-                if v:
-                    argkey = k
-                    argname = v
-                else:
-                    cmdarg = k
-        if help:
-            cmddesc.append((aliases[0], argname, fun.__doc__))
-        cmd = _mkcmd(fun, cmdarg, argkey)
-        for alias in aliases:
-            cmdhand[alias] = cmd
-    cls.command_descr = cmddesc
-    cls.command_handlers = cmdhand
-    return cls
+from .display import Menu, DoneException, extractcommands, letterify
 
 @extractcommands
-class PkgbuildMenu(object):
-    def __init__(self, manager, pkgs, pkgdb):
-        self.manager = manager
+class PkgbuildMenu(Menu):
+
+    def __init__(self, manager, pkgdb, pkgs):
+        super().__init__(manager, "Package files")
         self.pkgs = pkgs
         self.pkgdb = pkgdb
         self.all_files = []
@@ -66,39 +15,15 @@ class PkgbuildMenu(object):
             for fn in pkg.files_to_edit():
                 self.all_files.append((pkg.name, fn))
 
-    def completer(self, prefix, state):
-        print("PREFIX", prefix, state)
-        for i in cmdhand:
-            if i.startswith(prefix):
-                yield i
+    def items(self):
+        for pn, fn in self.all_files:
+            yield (pn, fn), self.manager.pkgfile(
+                self.pkgdb.file_get_state(pn, fn), pn, fn)
 
-    def run(self):
-        while True:
-            try:
-                self.manager.set_completer(self.completer)
-                res = self.manager.menu("Files to look throught from AUR",
-                    [((pn, fn),
-                      self.manager.pkgfile(
-                        self.pkgdb.file_get_state(pn, fn), pn, fn))
-                      for pn, fn in self.all_files],
-                    self.command_descr)
-            except KeyboardInterrupt:
-                res = ('q',)
-            except CommandExecute as cmd:
-                try:
-                    func = self.command_handlers[cmd.name]
-                except KeyError:
-                    pass
-                else:
-                    func(self, cmd.name, cmd.arg)
-            except DoneException as e:
-                break
-            else:
-                if not res:
-                    continue
-                self.pkgdb.file_backup(*res)
-                self.manager.toolset.editor(self.pkgdb.file_path(*res))
-                self.pkgdb.file_check_state(*res)
+    def select(self, res):
+        self.pkgdb.file_backup(*res)
+        self.manager.toolset.editor(self.pkgdb.file_path(*res))
+        self.pkgdb.file_check_state(*res)
 
     def cmd_editor(self, command:'NAME') -> 'e':
         """change editor"""
@@ -138,3 +63,17 @@ class PkgbuildMenu(object):
                     self.manager.toolset.diff(rn+'.orig', rn, filter=pager)
         pager.stdin.close()
         pager.wait()
+
+@extractcommands
+class InstallMenu(object):
+    def __init__(self, manager, pkgdb, names):
+        self.manager = manager
+        self.names = names
+        self.pkgdb = pkgdb
+
+    def run(self):
+        pass
+
+    def cmd_install(self) -> 'inst':
+        """install packages"""
+        raise DoneException()

@@ -16,11 +16,11 @@ class DependencyChecker(object):
         already = set(future)
         localrepo = manager.localrepo
         all_stock = defaultdict(list)
-        for k, v in all_stock.items():
-            all_stock[k].extend(v)
+        for k, v in manager.repos.items():
+            all_stock[k].extend(v.names)
         while future:
             name = future.pop()
-            if name in localrepo.names:
+            if name in localrepo.names and not name in self.targets:
                 self.installed_deps.append(name)
                 continue
             if name in all_stock:
@@ -39,3 +39,30 @@ class DependencyChecker(object):
                 self.targetpkgs.append(pkg)
             else:
                 self.aur_deps.append(pkg)
+
+    def stage_sort(self):
+        stages = []
+        items = {pkg.name: pkg for pkg in self.targetpkgs + self.aur_deps}
+        names = set(items)
+        while names:
+            cur = []
+            for nn in list(names):
+                pkg = items[nn]
+                if not names & (set(pkg.depends) | set(pkg.makedepends)):
+                    cur.append(nn)
+                    names.remove(nn)
+            if not stages:
+                stock = []
+                aur = []
+                for i in cur:
+                    if isinstance(items[i], rorepo.Package):
+                        stock.append(i)
+                    else:
+                        aur.append(i)
+                if stock:
+                    stages.append(('stock', stock))
+                if aur:
+                    stages.append(('aur', aur))
+            else:
+                stages.append(('aur', cur))
+        return stages

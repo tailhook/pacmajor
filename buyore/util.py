@@ -26,18 +26,19 @@ class Tool(object):
         cmdline = list(self.cmdline)
         cmdline.extend(args)
         filter = kw.pop('filter', None)
+        cwd = kw.pop('cwd', None)
         for k, v in kw.items():
             cmdline[self.indexes[k]] = v
         self.manager.commandline(cmdline)
         if filter:
-            proc = subprocess.Popen(cmdline, stdout=filter.stdin)
+            proc = subprocess.Popen(cmdline, stdout=filter.stdin, cwd=cwd)
             return proc.wait()
         elif self.pager and self.pager.enabled:
-            proc = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
+            proc = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=cwd)
             self.pager.filter(proc.stdout)
             return proc.wait()
         else:
-            proc = subprocess.Popen(cmdline)
+            proc = subprocess.Popen(cmdline, cwd=cwd)
             return proc.wait()
 
     def filter(self, pipe=None):
@@ -64,6 +65,7 @@ class Toolset(object):
         self.declare_tool('install_file', pacman)
         self.declare_tool('download', 'wget -nv -O $output $url')
         self.declare_tool('unpack', 'bsdtar -xf $filename -C $outdir')
+        self.declare_tool('build', 'makepkg --log')
 
     def declare_tool(self, name, default, pager=False):
         cmdline = default

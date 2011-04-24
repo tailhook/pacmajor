@@ -13,6 +13,9 @@ class PkgBuild(object):
             if isinstance(line, parser.VarValue):
                 values[line.name.value] = line.interpolate(values)
         self.vars = values
+        self.pkgver = self.vars['pkgver']
+        self.pkgrel = self.vars['pkgrel']
+        self.pkgname = self.vars['pkgname']
         self.makedepends = [k.split('>=')[0]
             for k in self.vars.get('makedepends', ())]
         self.depends = [k.split('>=')[0]
@@ -33,6 +36,13 @@ class TemporaryDB(object):
     def __init__(self, manager):
         self.manager = manager
         self.states = {}
+        self.packages = {}
+        self.config = {}
+        makepkgconf = os.path.join(self.manager.root, 'etc/makepkg.conf')
+        with open(makepkgconf, 'rb') as file:
+            for line in parser.parse(file):
+                if isinstance(line, parser.VarValue):
+                    self.config[line.name.value] = line.interpolate(self.config)
 
     def __enter__(self):
         self.dir = tempfile.mkdtemp()
@@ -48,7 +58,9 @@ class TemporaryDB(object):
         self.manager.toolset.download(output=tarname, url=tarurl)
         self.manager.toolset.unpack(outdir=self.dir, filename=tarname)
         with open('{0}/{1}/PKGBUILD'.format(self.dir, name), 'rb') as f:
-            return PkgBuild(f)
+            pkg = PkgBuild(f)
+        self.packages[name] = pkg
+        return pkg
 
     def file_backup(self, pkg, file, *, suffix='.orig'):
         fn = os.path.join(self.dir, pkg, file)
@@ -67,6 +79,17 @@ class TemporaryDB(object):
             self.states[pkg, file] = display.FILE_VIEWED
         else:
             self.states[pkg, file] = display.FILE_MODIFIED
+
+    def build_package(self, name):
+        with self.manager.section("Building " + name) as sect:
+            self.manager.toolset.build(
+                cwd=os.path.join(self.dir, name))
+
+    def package_file(self, name):
+        pkg = self.packages[name]
+        return os.path.join(self.dir, name,
+            '{0.pkgname}-{0.pkgver}-{0.pkgrel}-{1[CARCH]}{1[PKGEXT]}'
+            .format(pkg, self.config))
 
 def tmpdb(manager):
     return TemporaryDB(manager)
