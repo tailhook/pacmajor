@@ -1,6 +1,8 @@
 import sys
 import os
 
+import archive
+
 from .display import Menu, DoneException, extractcommands, letterify
 
 @extractcommands
@@ -65,15 +67,46 @@ class PkgbuildMenu(Menu):
         pager.wait()
 
 @extractcommands
-class InstallMenu(object):
+class InstallMenu(Menu):
     def __init__(self, manager, pkgdb, names):
-        self.manager = manager
-        self.names = names
+        super().__init__(manager, "Just built packages")
+        self.names = list(names)
         self.pkgdb = pkgdb
 
-    def run(self):
+    def items(self):
+        for name in self.names:
+            yield name, name #TODO: add some info
+
+    def select(self, name):
         pass
 
     def cmd_install(self) -> 'inst':
         """install packages"""
         raise DoneException()
+
+    def letters_to_names(self, letters):
+        if letters:
+            mapping = dict(letterify(self.names))
+            for i in letters:
+                name = mapping.get(i)
+                if name is None:
+                    continue
+                yield name
+        else:
+            for name in self.names:
+                yield name
+
+    def cmd_list(self, letters:'LETTERS') -> 'l':
+        """list package contents"""
+        for name in self.letters_to_names(letters):
+            for fn in archive.Archive(self.pkgdb.package_file(name)):
+                print(name + ':', fn.filename)
+
+    def cmd_namcap(self, letters:'LETTERS') -> 'namcap':
+        """check package with namcap"""
+        self.manager.toolset.namcap(*(self.pkgdb.package_file(name)
+            for name in self.letters_to_names(letters)))
+
+    def cmd_quit(self) -> 'q':
+        """quit"""
+        sys.exit(2)
