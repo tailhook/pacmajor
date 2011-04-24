@@ -1,27 +1,27 @@
 import urllib.request
 import os
+import sys
+import shutil
 
-from .rorepo import ReadonlyRepo
-from .display import action, section, title
+from .rorepo import load_repos, local_repo
+from .dep import DependencyChecker
+from .display import (CommandExecute,
+    action, section, title, print_item, menu, pkgfile)
+from . import display
 from . import aur
 from . import pacman
 from . import pkgbuild
+from .util import runcommand
 
 REPO_DIR = '/var/lib/pacman/sync'
 
-def load_repos():
-    repos = []
-    for i in os.listdir(REPO_DIR):
-        repos.append(ReadonlyRepo(REPO_DIR+'/'+i))
-    return repos
-
 def install_packages(names):
     stock = {}
-    all_stock = set()
+    with action("Reading local repositories"):
+        localrepo = local_repo()
     with action('Searching for stock packages') as act:
         repos = load_repos()
-        for r in repos:
-            all_stock.update(r.packages)
+        for r in repos.values():
             for n in names:
                 p = r.packages.get(n)
                 if p is not None:
@@ -43,34 +43,67 @@ def install_packages(names):
             title("All names found in packages, starting pacman")
         pacman.install(names)
         return
-    with section('Gathering PKGBUILDs and dependencies') as act:
-        with pkgbuild.tmpdb() as pdb:
-            future = list(builds.keys())
-            already = set(future)
-            stock_deps = []
-            targets = []
-            deps = []
-            while future:
-                name = future.pop()
-                if name in all_stock:
-                    stock_deps.append(name)
+    with pkgbuild.tmpdb() as pdb:
+        with section('Gathering PKGBUILDs and dependencies') as act:
+            dep = DependencyChecker(builds.keys())
+            dep.check(pdb)
+        if dep.stock_deps:
+            title("Installing following packages")
+            for pkg in dep.stock_deps:
+                print_item(pkg.name)
+        all_files = []
+        modes = {}
+        for pkg in dep.aur_deps + dep.targetpkgs:
+            for fn in pkg.files_to_edit():
+                all_files.append((pkg.name, fn))
+        while True:
+            try:
+                res = menu("Files to look throught from AUR",
+                    (((pn, fn),
+                      pkgfile(modes.get((pn, fn), display.FILE_NEW), pn, fn))
+                     for pn, fn in all_files),
+                    e="NAME     change editor ({EDITOR})".format_map(os.environ),
+                    d="LETTERS  diff files",
+                    q="         quit")
+            except KeyboardInterrupt:
+                res = ('q',)
+            except CommandExecute as cmd:
+                if cmd.name == 'e':
+                    os.environ['EDITOR'] = cmd.arg
+                elif cmd.name == 'setdiff':
+                    os.environ['DIFFTOOL'] = cmd.arg
+                elif cmd.name == 'q':
+                    sys.exit(2)
+                elif cmd.name == 'done':
+                    break
+                elif cmd.name in ('d', 'diff', 'dall', 'diffall', 'diff_all'):
+                    if (cmd.arg == 'all'
+                        or cmd.name in ('dall', 'diffall', 'diff_all')):
+                        for pn, fn in all_files:
+                            rn = os.path.join(pdb.dir, pn, fn)
+                            runcommand([os.environ["DIFFTOOL"],
+                                '-uw', rn+'.orig', rn])
+                    else:
+                        chars = dict(display.letterify(all_files))
+                        for c in cmd.arg:
+                            try:
+                                pn, fn = chars[c]
+                            except KeyError:
+                                continue
+                            rn = os.path.join(pdb.dir, pn, fn)
+                            runcommand([os.environ["DIFFTOOL"],
+                                '-uw', rn+'.orig', rn])
+            else:
+                if not res:
                     continue
-                pkg = pdb.fetch(name)
-                for dep in pkg.makedepends:
-                    if dep in already:
-                        continue
-                    future.append(dep)
-                for dep in pkg.depends:
-                    if dep in already:
-                        continue
-                    future.append(dep)
-                if pkg.name in builds:
-                    targets.append(pkg)
+                fn = os.path.join(pdb.dir, *res)
+                if not os.path.exists(fn+'.orig'):
+                    shutil.copy(fn, fn+'.orig')
+                runcommand([os.environ['EDITOR'], fn])
+                if runcommand(['diff', '-qw', fn, fn+'.orig']) == 0:
+                    modes[res] = display.FILE_VIEWED
                 else:
-                    deps.append(pkg)
-        print("Stock depedencies", stock_deps)
-        print("AUR dependencies", deps)
-        print("Targets", targets)
+                    modes[res] = display.FILE_MODIFIED
 
 def get_options():
     import argparse
@@ -113,6 +146,12 @@ def main():
 
     display.verbosity = options.verbosity
     display.colorize = options.colorize
+
+    os.environ.setdefault('EDITOR', 'vim')
+    if display.colorize:
+        os.environ.setdefault('DIFFTOOL', 'colordiff')
+    else:
+        os.environ.setdefault('DIFFTOOL', 'diff')
 
     if options.packages:
         install_packages(options.packages)

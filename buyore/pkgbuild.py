@@ -5,18 +5,27 @@ from .util import runcommand
 from . import parser
 
 class PkgBuild(object):
+
     def __init__(self, file):
         values = {}
         for line in parser.parse(file):
             if isinstance(line, parser.VarValue):
                 values[line.name.value] = line.interpolate(values)
-        import pprint; pprint.pprint(values)
         self.vars = values
         self.makedepends = [k.split('>=')[0]
             for k in self.vars.get('makedepends', ())]
         self.depends = [k.split('>=')[0]
             for k in self.vars.get('makedepends', ())]
         self.name = self.vars['pkgname']
+        self.install = self.vars.get('install')
+
+    def __repr__(self):
+        return '<PKGBUILD {0}>'.format(self.name)
+
+    def files_to_edit(self):
+        yield 'PKGBUILD'
+        if self.install:
+            yield self.install
 
 class TemporaryDB(object):
     def __init__(self):
