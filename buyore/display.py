@@ -54,6 +54,21 @@ class DisplayObject(object):
         else:
             return modes[mode]+' ' + pkgname + '/' + fn
 
+    def pkgname(self, name, info):
+        return ("{2} {0}(built in {3[elapsed]:.2f}s,"
+            " size: {4},"
+            " files: {3[files]}){1}"
+            .format("\033[34m", "\033[0m", name, info,
+                self.fsize(info['unpacked'])))
+
+    def fsize(self, size):
+        sizes = ('KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
+        for suffix in sizes:
+            size >>= 10
+            if size < 1024:
+                return '{0:.1f} {1}'.format(size, suffix)
+        raise ValueError("Some strange size")
+
     def title(self, value):
         if self.verbosity:
             self.cprint(TITLE, '==>', value)
@@ -130,6 +145,7 @@ class Action(object):
     def __exit__(self, exc_type, exc_value, ext_tb):
         d = time.time() - self._time
         self.disp.cprint(TITLE, ' ... done in {:.2f}s'.format(d))
+        self.elapsed = d
 
     def add(self, text):
         if not self._time:
@@ -154,6 +170,7 @@ class Section(object):
     def __exit__(self, exc_type, exc_value, ext_tb):
         d = time.time() - self._time
         self.disp.cprint(TITLE, '--> done in {:.2f}s'.format(d))
+        self.elapsed = d
 
     def add(self, text):
         if not self._time:

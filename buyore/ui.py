@@ -99,7 +99,8 @@ class InstallMenu(Menu):
 
     def items(self):
         for name in self.names:
-            yield name, name #TODO: add some info
+            pkg = self.pkgdb.packages[name]
+            yield name, self.manager.pkgname(name, pkg.build_info)
 
     def select(self, name):
         pass

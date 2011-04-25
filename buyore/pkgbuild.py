@@ -2,6 +2,8 @@ import tempfile
 import shutil
 import os.path
 
+import archive
+
 from . import parser
 from . import display
 
@@ -77,6 +79,19 @@ class TemporaryDB(object):
         with self.manager.section("Building " + name) as sect:
             self.manager.toolset.build(
                 cwd=os.path.join(self.dir, name))
+            nfiles = 0
+            nbytes = 0
+            for file in archive.Archive(self.package_file(name)):
+                if name.startswith('.'):  # all hidden in the root are special
+                    continue
+                nfiles += 1
+                nbytes += len(file.read())  # TODO: get size from libarchive
+
+        self.packages[name].build_info = {
+            'files': nfiles,
+            'unpacked': nbytes,
+            'elapsed': sect.elapsed,
+            }
 
     def package_file(self, name):
         pkg = self.packages[name]
