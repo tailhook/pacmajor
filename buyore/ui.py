@@ -45,6 +45,26 @@ class PkgbuildMenu(Menu):
         self.manager.toolset.namcap(*(self.pkgdb.file_path(*item)
             for item in self.letters_to_names(letters)))
 
+    def cmd_bump(self, arg:'LET VER') -> ('up', 'bump', 'ver', 'version'):
+        """change version (also set pkgrel to 1)"""
+        let, ver = arg.split(None, 1)
+        for i in self.letters_to_names(let):
+            self.pkgdb.file_backup(*i)
+            self.manager.toolset.sed(
+                '{s/^pkgver=.*/pkgver=' + ver+'/;s/^pkgrel=.*/pkgrel=1/}',
+                self.pkgdb.file_path(*i))
+            self.pkgdb.file_check_state(*i)
+
+    def cmd_newrel(self, let:'LETTERS') -> ('nrel', 'newrelease', 'nr'):
+        """increment pkgrel number"""
+        for i in self.letters_to_names(let):
+            self.pkgdb.file_backup(*i)
+            pkg = self.pkgdb.packages[i[0]]
+            self.manager.toolset.sed(
+                '{s/^pkgrel=.*/pkgrel='+str(int(pkg.pkgrel)+1)+'/}',
+                self.pkgdb.file_path(*i))
+            self.pkgdb.file_check_state(*i)
+
     def cmd_done(self) -> 'done':
         """build packages"""
         raise DoneException()

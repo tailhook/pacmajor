@@ -67,6 +67,7 @@ class Toolset(object):
         self.declare_tool('unpack', 'bsdtar -xf $filename -C $outdir')
         self.declare_tool('build', 'makepkg --log')
         self.declare_tool('namcap', 'namcap')
+        self.declare_tool('sed', 'sed -i')
 
     def declare_tool(self, name, default, pager=False):
         cmdline = default
