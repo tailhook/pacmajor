@@ -181,6 +181,7 @@ def _mkcmd(fun, cmdarg, argkey):
 
 def extractcommands(cls):
     cmddesc = []
+    cmdall = []
     cmdhand = {}
     for funcname in dir(cls):
         if not funcname.startswith('cmd_'):
@@ -206,10 +207,12 @@ def extractcommands(cls):
                     cmdarg = k
         if help:
             cmddesc.append((aliases[0], argname, fun.__doc__))
+        cmdall.append((aliases, argname, fun.__doc__))
         cmd = _mkcmd(fun, cmdarg, argkey)
         for alias in aliases:
             cmdhand[alias] = cmd
     cls.command_descr = cmddesc
+    cls.command_alldescr = cmdall
     cls.command_handlers = cmdhand
     return cls
 
@@ -218,6 +221,14 @@ class Menu(object):
     def __init__(self, manager, title):
         self.manager = manager
         self.title = title
+
+    def cmd_help(self) -> ('h', '?', 'help'):
+        """show help"""
+        mlen = max(len(mv)+len(a[0]) for a, mv, name in self.command_alldescr)+1
+        for aliases, mv, name in self.command_alldescr:
+            print('    :{0:{1}} {2}'.format(aliases[0]+' '+mv, mlen, name))
+            if len(aliases) > 1:
+                print('       aliases:', ', '.join(aliases))
 
     def completer(self, prefix, state):
         # TODO: explore why it doesn't get called
