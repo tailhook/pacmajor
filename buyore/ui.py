@@ -7,6 +7,7 @@ from .display import Menu, DoneException, extractcommands
 
 @extractcommands
 class PkgbuildMenu(Menu):
+    visible_commands = ['done', 'd', 'e', 'h', 'q']
 
     def __init__(self, manager, pkgdb, pkgs):
         super().__init__(manager, "Package files")
@@ -89,6 +90,8 @@ class PkgbuildMenu(Menu):
 
 @extractcommands
 class InstallMenu(Menu):
+    visible_commands = ['inst', 'l', 'c', 'q']
+
     def __init__(self, manager, pkgdb, names):
         super().__init__(manager, "Just built packages")
         self.names = list(names)
@@ -111,7 +114,7 @@ class InstallMenu(Menu):
             for fn in archive.Archive(self.pkgdb.package_file(name)):
                 print(name + ':', fn.filename)
 
-    def cmd_namcap(self, letters:'LETTERS') -> 'namcap':
+    def cmd_namcap(self, letters:'LETTERS') -> ('c', 'namcap'):
         """check package with namcap"""
         self.manager.toolset.namcap(*(self.pkgdb.package_file(name)
             for name in self.letters_to_names(letters)))

@@ -180,15 +180,14 @@ def _mkcmd(fun, cmdarg, argkey):
     return cmd
 
 def extractcommands(cls):
-    cmddesc = []
     cmdall = []
     cmdhand = {}
+    all = {}
     for funcname in dir(cls):
         if not funcname.startswith('cmd_'):
             continue
         fun = getattr(cls, funcname)
         aliases = fun.__annotations__.get('return')
-        help = bool(aliases)
         if not aliases:
             aliases = (funcname[len('cmd_'):],)
         elif isinstance(aliases, str):
@@ -205,13 +204,12 @@ def extractcommands(cls):
                     argname = v
                 else:
                     cmdarg = k
-        if help:
-            cmddesc.append((aliases[0], argname, fun.__doc__))
         cmdall.append((aliases, argname, fun.__doc__))
         cmd = _mkcmd(fun, cmdarg, argkey)
         for alias in aliases:
             cmdhand[alias] = cmd
-    cls.command_descr = cmddesc
+            all[alias] = (argname, fun.__doc__)
+    cls.command_descr = [(a, ) + all[a] for a in cls.visible_commands]
     cls.command_alldescr = cmdall
     cls.command_handlers = cmdhand
     return cls
