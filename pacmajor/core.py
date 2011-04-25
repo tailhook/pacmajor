@@ -1,3 +1,5 @@
+import os.path
+
 from .util import Toolset
 from .display import DisplayObject
 from .dep import DependencyChecker
@@ -89,3 +91,13 @@ class Pacmajor(DisplayObject):
                         self.toolset.install_file('--asdeps', *deps)
                 else:
                     raise NotImplementedError(typ)
+            repodir = self.config.get('repo_dir')
+            reponame = self.config.get('repo_name')
+            if repodir and reponame:
+                if not os.path.exists(repodir):
+                    os.makedirs(repodir)
+                for pkg in dep.aur_deps + dep.targetpkgs:
+                    pfile = pdb.package_file(pkg.name)
+                    tfile = os.path.join(repodir, os.path.basename(pfile))
+                    self.toolset.copy(pfile, tfile)
+                    self.toolset.repo_add(os.path.join(repodir,reponame), tfile)

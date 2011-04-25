@@ -69,6 +69,8 @@ class Toolset(object):
         self.declare_tool('namcap', 'namcap')
         self.declare_tool('sed', 'sed -i')
         self.declare_tool('git', 'git')
+        self.declare_tool('copy', 'cp')
+        self.declare_tool('repo_add', 'repo-add')
 
     def declare_tool(self, name, default, pager=False):
         cmdline = default

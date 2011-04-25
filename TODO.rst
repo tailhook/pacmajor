@@ -6,6 +6,11 @@ Version 0.1
 * adding package to repository
 * syncing gits
 * colorize menu help
+* count files correcly (no dirs)
+* implement buildlog display in install menu
+* handle build errors gracefully
+* display merge oportunities in pkgbuild menu
+* check file status using git rather comparing with diff
 
 Version 0.2
 -----------
