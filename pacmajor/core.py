@@ -7,7 +7,7 @@ from . import aur
 from . import pkgbuild
 from . import parser
 
-class Buyore(DisplayObject):
+class Pacmajor(DisplayObject):
     """Represents whole package manager"""
 
     def __init__(self,
@@ -19,7 +19,7 @@ class Buyore(DisplayObject):
         self.verbosity = verbosity
         self.color = color
         self.root = root
-        with open('/etc/buyore.conf', 'rb') as file:
+        with open('/etc/pacmajor.conf', 'rb') as file:
             self.config = parser.parse_vars(file)
         self.toolset = Toolset(self)
 

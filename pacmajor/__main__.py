@@ -42,7 +42,7 @@ def main():
     ap = get_options()
     options = ap.parse_args()
 
-    manager = core.Buyore(
+    manager = core.Pacmajor(
         interactive=options.interactive,
         verbosity=options.verbosity,
         root=options.root,

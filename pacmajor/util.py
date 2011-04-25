@@ -81,9 +81,9 @@ class Toolset(object):
             cmdline = os.environ[name.upper()]
             self.manager.debug("Tool `{0}`, environ {1}: {2}"
                 .format(name, name.upper(), cmdline))
-        if 'BUYORE_'+name.upper() in os.environ:
-            cmdline = os.environ['BUYORE_'+name.upper()]
-            self.manager.debug("Tool `{0}`, environ BUYORE_{1}: {2}"
+        if 'PACMAJOR_'+name.upper() in os.environ:
+            cmdline = os.environ['PACMAJOR_'+name.upper()]
+            self.manager.debug("Tool `{0}`, environ PACMAJOR_{1}: {2}"
                 .format(name, name.upper(), cmdline))
         self.manager.tool_selected(name, cmdline)
         self.tools[name] = Tool(cmdline, manager=self.manager,
