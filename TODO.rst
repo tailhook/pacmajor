@@ -11,6 +11,7 @@ Version 0.1
 * handle build errors gracefully
 * display merge oportunities in pkgbuild menu
 * check file status using git rather comparing with diff
+* handle dependency changes during pkgbuild menu correctly
 
 Version 0.2
 -----------
