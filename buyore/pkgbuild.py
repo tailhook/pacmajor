@@ -8,11 +8,7 @@ from . import display
 class PkgBuild(object):
 
     def __init__(self, file):
-        values = {}
-        for line in parser.parse(file):
-            if isinstance(line, parser.VarValue):
-                values[line.name.value] = line.interpolate(values)
-        self.vars = values
+        self.vars = parser.parse_vars(file)
         self.pkgver = self.vars['pkgver']
         self.pkgrel = self.vars['pkgrel']
         self.pkgname = self.vars['pkgname']
@@ -37,12 +33,9 @@ class TemporaryDB(object):
         self.manager = manager
         self.states = {}
         self.packages = {}
-        self.config = {}
         makepkgconf = os.path.join(self.manager.root, 'etc/makepkg.conf')
         with open(makepkgconf, 'rb') as file:
-            for line in parser.parse(file):
-                if isinstance(line, parser.VarValue):
-                    self.config[line.name.value] = line.interpolate(self.config)
+            self.config = parser.parse_vars(file)
 
     def __enter__(self):
         self.dir = tempfile.mkdtemp()

@@ -5,6 +5,7 @@ from .rorepo import LocalRepo, load_repos
 from .ui import PkgbuildMenu, InstallMenu
 from . import aur
 from . import pkgbuild
+from . import parser
 
 class Buyore(DisplayObject):
     """Represents whole package manager"""
@@ -18,6 +19,8 @@ class Buyore(DisplayObject):
         self.verbosity = verbosity
         self.color = color
         self.root = root
+        with open('/etc/buyore.conf', 'rb') as file:
+            self.config = parser.parse_vars(file)
         self.toolset = Toolset(self)
 
     def load_local(self):

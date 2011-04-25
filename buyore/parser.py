@@ -1,4 +1,5 @@
 import re
+import os.path
 import itertools
 
 re_tokenize = re.compile(r"""
@@ -9,6 +10,7 @@ re_tokenize = re.compile(r"""
       | \$\( | \)
       | [\(\)\[\]{}])
     | (?P<var>\$[_a-zA-Z][a-zA-Z0-9_]*)
+    | (?P<tilde>~\w*)
     | (?P<op>[=|>&])
     | (?P<ws>\s+ | \\\n | \\\r\n | \\\r)
     | (?P<comment>\#.*$)
@@ -78,6 +80,8 @@ class VarValue(Node):
                 result += vars[i.value[1:]]
             elif i.typ == 'quoted':
                 result += i.value[1:-1]
+            elif i.typ == 'tilde':
+                result += os.path.expanduser(i.value)
             else:
                 result += i.value
         return result
@@ -172,3 +176,9 @@ def _parse(tok):
         yield CmdLine.parse(name, oper,
             *itertools.takewhile(lambda x: x.typ != 'newline', tok))
 
+def parse_vars(file):
+    values = {}
+    for line in parse(file):
+        if isinstance(line, VarValue):
+            values[line.name.value] = line.interpolate(values)
+    return values

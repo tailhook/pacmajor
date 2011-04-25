@@ -71,6 +71,10 @@ class Toolset(object):
     def declare_tool(self, name, default, pager=False):
         cmdline = default
         self.manager.debug("Tool `{0}`, default: {1}".format(name, cmdline))
+        if name in self.manager.config:
+            cmdline = self.manager.config[name]
+            self.manager.debug("Tool `{0}`, from config: {1}"
+                .format(name, cmdline))
         if name.upper() in os.environ:
             cmdline = os.environ[name.upper()]
             self.manager.debug("Tool `{0}`, environ {1}: {2}"

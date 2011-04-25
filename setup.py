@@ -11,6 +11,7 @@ setup(name='buyore',
         'License :: OSI Approved :: MIT License',
         ],
     packages=['buyore'],
+    package_data=['buyore.conf'],
     scripts=['scripts/buy'],
     requires=['pyarchive'],
     )
