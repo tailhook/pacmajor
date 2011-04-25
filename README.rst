@@ -11,7 +11,7 @@ Basic features:
 * have simple utility for patching PKGBUILDs (bump version/release,
   merges, more to come)
 * allows to edit all PKGBUILDs at once (comparing to yaourt)
-
+* automatically adds built packages to local repository
 
 Usage
 -----
