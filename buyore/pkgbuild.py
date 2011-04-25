@@ -1,11 +1,20 @@
 import tempfile
 import shutil
 import os.path
+from functools import partial
 
 import archive
 
 from . import parser
 from . import display
+
+GIT_IGNORE = """
+*.swo
+*.swp
+*~
+*.orig
+*.bak
+"""
 
 class PkgBuild(object):
 
@@ -35,27 +44,68 @@ class TemporaryDB(object):
         self.manager = manager
         self.states = {}
         self.packages = {}
+        self.gitdir = self.manager.config['git_dir']
+        self.gitbranch = self.manager.config['git_my_branch']
         makepkgconf = os.path.join(self.manager.root, 'etc/makepkg.conf')
         with open(makepkgconf, 'rb') as file:
             self.config = parser.parse_vars(file)
 
     def __enter__(self):
         self.dir = tempfile.mkdtemp()
+        self.edir = os.path.join(self.dir, 'empty')
+        os.mkdir(self.edir)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         shutil.rmtree(self.dir)
 
     def fetch(self, name):
+        if not os.path.exists(self.gitdir):
+            os.makedirs(self.gitdir)
+        pkgdir = os.path.join(self.gitdir, name)
+        localgit = partial(self.manager.toolset.git,
+            '--git-dir='+pkgdir,
+            '--work-tree='+os.path.join(self.dir, name))
+        if not os.path.exists(pkgdir):
+            os.mkdir(pkgdir)
+            self.manager.toolset.git('init', '--bare', pkgdir)
         tarurl = 'http://aur.archlinux.org/packages/{0}/{0}.tar.gz'\
             .format(name)
         tarname = '{0}/{1}.tar.gz'.format(self.dir, name)
         self.manager.toolset.download(output=tarname, url=tarurl)
         self.manager.toolset.unpack(outdir=self.dir, filename=tarname)
-        with open('{0}/{1}/PKGBUILD'.format(self.dir, name), 'rb') as f:
+        with open(os.path.join(self.dir, name, '.gitignore'), 'wt') as f:
+            f.write(GIT_IGNORE)
+        with open(os.path.join(self.dir, name, 'PKGBUILD'), 'rb') as f:
             pkg = PkgBuild(f)
+        localgit('symbolic-ref', 'HEAD', 'refs/heads/aur')
+        localgit('add', '.')
+        localgit('commit',
+            '-m', 'Package version {0.pkgver!r} from aur'.format(pkg)))
+        localgit('branch', self.gitbranch, 'aur')
+        localgit('symbolic-ref', 'HEAD', 'refs/heads/'+self.gitbranch)
         self.packages[name] = pkg
         return pkg
+
+    def merge(self, name, branch=None):
+        pkgdir = os.path.join(self.gitdir, name)
+        localgit = partial(self.manager.toolset.git,
+            '--git-dir='+pkgdir,
+            '--work-tree='+os.path.join(self.dir, name))
+        localgit('symbolic-ref', 'HEAD', 'refs/heads/aur')
+        localgit('merge', '--no-commit', '--no-ff', branch or self.gitbranch)
+        localgit('symbolic-ref', 'HEAD', 'refs/heads/'+self.gitbranch)
+
+    def commit(self, name, message):
+        for f in self.packages[name].files_to_edit():
+            self.file_backup(name, f)
+        pkgdir = os.path.join(self.gitdir, name)
+        localgit = partial(self.manager.toolset.git,
+            '--git-dir='+pkgdir,
+            '--work-tree='+os.path.join(self.dir, name))
+        localgit('symbolic-ref', 'HEAD', 'refs/heads/'+self.gitbranch)
+        localgit('add', '.')
+        localgit('commit', '-m', message)
 
     def file_backup(self, pkg, file, *, suffix='.orig'):
         fn = os.path.join(self.dir, pkg, file)

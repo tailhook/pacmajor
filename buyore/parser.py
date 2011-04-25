@@ -77,7 +77,10 @@ class VarValue(Node):
         result = ""
         for i in self.value:
             if i.typ == 'var':
-                result += vars[i.value[1:]]
+                try:
+                    result += vars[i.value[1:]]
+                except KeyError:
+                    result += os.environ.get(i.value[1:], '')
             elif i.typ == 'quoted':
                 result += i.value[1:-1]
             elif i.typ == 'tilde':

@@ -67,6 +67,8 @@ class Buyore(DisplayObject):
                     print_item(pkg.name)
             PkgbuildMenu(self, pdb, dep.aur_deps + dep.targetpkgs).run()
             # TODO: recheck dependencies
+            for pkg in dep.aur_deps + dep.targetpkgs:
+                pdb.commit(pkg.name, "Edited package file")
             for typ, pkgs in dep.stage_sort():
                 if typ == 'stock':
                     normal = [p for p in pkgs if p in stock]

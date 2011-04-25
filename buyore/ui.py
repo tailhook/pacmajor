@@ -48,6 +48,8 @@ class PkgbuildMenu(Menu):
 
     def cmd_bump(self, arg:'LET VER') -> ('up', 'bump', 'ver', 'version'):
         """change version (also set pkgrel to 1)"""
+        if not arg:
+            return
         let, ver = arg.split(None, 1)
         for i in self.letters_to_names(let):
             self.pkgdb.file_backup(*i)
@@ -69,6 +71,20 @@ class PkgbuildMenu(Menu):
     def cmd_done(self) -> 'done':
         """build packages"""
         raise DoneException()
+
+    def cmd_merge(self, arg:'LET BRANCH') -> 'm':
+        """merge branch"""
+        try:
+            let, branch = (arg or '').split(None, 1)
+        except ValueError:
+            let = arg
+            branch = None
+        merged = set()
+        for i in self.letters_to_names(let):
+            if i[0] in merged:
+                continue
+            merged.add(i[0])
+            self.pkgdb.merge(i[0], branch)
 
     diff_aliases = ('d', 'diff', 'dall', 'diffall', 'diff_all')
     def cmd_diff(self, cmd:'', letters:"LETTERS") -> diff_aliases:
