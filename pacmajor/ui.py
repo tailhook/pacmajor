@@ -86,6 +86,11 @@ class PkgbuildMenu(Menu):
             merged.add(i[0])
             self.pkgdb.merge(i[0], branch)
 
+    def cmd_mergetool(self, let:'LETTERS') -> ('mt', 'mtool'):
+        """run git mergetool"""
+        for i in self.letters_to_names(let):
+            self.pkgdb.mergetool(i[0])
+
     diff_aliases = ('d', 'diff', 'dall', 'diffall', 'diff_all')
     def cmd_diff(self, cmd:'', letters:"LETTERS") -> diff_aliases:
         """show differences"""

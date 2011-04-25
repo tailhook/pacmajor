@@ -81,20 +81,40 @@ class TemporaryDB(object):
         localgit('symbolic-ref', 'HEAD', 'refs/heads/aur')
         localgit('add', '.')
         localgit('commit',
-            '-m', 'Package version {0.pkgver!r} from aur'.format(pkg)))
+            '-m', 'Package version {0.pkgver!r} from aur'.format(pkg))
         localgit('branch', self.gitbranch, 'aur')
         localgit('symbolic-ref', 'HEAD', 'refs/heads/'+self.gitbranch)
         self.packages[name] = pkg
         return pkg
 
     def merge(self, name, branch=None):
+        for f in self.packages[name].files_to_edit():
+            self.file_backup(name, f)
         pkgdir = os.path.join(self.gitdir, name)
         localgit = partial(self.manager.toolset.git,
             '--git-dir='+pkgdir,
-            '--work-tree='+os.path.join(self.dir, name))
-        localgit('symbolic-ref', 'HEAD', 'refs/heads/aur')
-        localgit('merge', '--no-commit', '--no-ff', branch or self.gitbranch)
-        localgit('symbolic-ref', 'HEAD', 'refs/heads/'+self.gitbranch)
+            '--work-tree='+os.path.join(self.dir, name),
+            cwd=os.path.join(self.dir, name))  #needed for stash
+        if branch is None or branch == self.gitbranch:
+            localgit('symbolic-ref', 'HEAD', 'refs/heads/aur')
+            localgit('stash', 'save', 'starting merge')
+            localgit('symbolic-ref', 'HEAD', 'refs/heads/'+self.gitbranch)
+            localgit('reset', '--hard')
+            localgit('merge', '--no-commit', 'aur')
+            localgit('stash', 'pop')
+        else:
+            localgit('symbolic-ref', 'HEAD', 'refs/heads/'+self.gitbranch)
+            localgit('merge', '--no-commit', branch)
+        for f in self.packages[name].files_to_edit():
+            self.file_check_state(name, f)
+
+    def mergetool(self, name):
+        pkgdir = os.path.join(self.gitdir, name)
+        localgit = partial(self.manager.toolset.git,
+            '--git-dir='+pkgdir,
+            '--work-tree='+os.path.join(self.dir, name),
+            cwd=os.path.join(self.dir, name))  #needed for mergetool
+        localgit('mergetool')
 
     def commit(self, name, message):
         for f in self.packages[name].files_to_edit():
@@ -106,6 +126,8 @@ class TemporaryDB(object):
         localgit('symbolic-ref', 'HEAD', 'refs/heads/'+self.gitbranch)
         localgit('add', '.')
         localgit('commit', '-m', message)
+        for f in self.packages[name].files_to_edit():
+            self.file_check_state(name, f)
 
     def file_backup(self, pkg, file, *, suffix='.orig'):
         fn = os.path.join(self.dir, pkg, file)
