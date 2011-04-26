@@ -30,6 +30,15 @@ class Pacmajor(DisplayObject):
 
     def load_repos(self):
         self.repos = load_repos(self.root)
+        val = self.config.get('ignore_repo')
+        if val:
+            if isinstance(val, str):
+                self.repos.pop(val, None)
+                self.repos.pop(val+'.db', None)
+            else:
+                for name in val:
+                    self.repos.pop(name, None)
+                    self.repos.pop(name+'.db', None)
 
     def install_packages(self, names):
         stock = {}
