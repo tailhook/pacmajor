@@ -205,10 +205,13 @@ def extractcommands(cls):
             continue
         fun = getattr(cls, funcname)
         aliases = fun.__annotations__.get('return')
+        defalias = funcname[len('cmd_'):]
         if not aliases:
-            aliases = (funcname[len('cmd_'):],)
+            aliases = (defalias,)
         elif isinstance(aliases, str):
             aliases = (aliases,)
+        if defalias not in aliases:
+            aliases = aliases + (defalias,)
         argname = ""
         argkey = None
         cmdarg = None
