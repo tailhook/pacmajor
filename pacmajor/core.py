@@ -55,9 +55,9 @@ class Pacmajor(DisplayObject):
                     builds[n] = info
                 act.add('found {0}'.format(len(builds)))
         else:
-            if options.verbosity:
+            if self.verbosity:
                 self.title("All names found in packages, starting pacman")
-            pacman.install(names)
+            self.toolset.install_sync(*names)
             return
         with pkgbuild.tmpdb(self) as pdb:
             with self.section('Gathering PKGBUILDs and dependencies') as act:
