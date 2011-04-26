@@ -45,10 +45,13 @@ class DisplayObject(object):
             ff.write(RESET)
             ff.flush()
 
-    def pkgfile(self, mode, pkgname, fn):
+    def pkgfile(self, mode, pkgname, fn, pkginfo, aurinfo):
         if self.color:
             if fn == 'PKGBUILD':
-                return modes[mode]+' \033[37m' + pkgname + '\033[34m/' + fn + '\033[0m'
+                return ('{0} \033[37;1m{1}\033[22m/{2}'
+                    ' \033[34m(ver: {3.pkgver}-{3.pkgrel} votes: {4[NumVotes]}{5})\033[0m'
+                    .format(modes[mode], pkgname, fn, pkginfo, aurinfo,
+                        ' dated' if int(aurinfo['OutOfDate']) else ''))
             else:
                 return modes[mode]+' '+' '*len(pkgname) + ' \033[34m' + fn + '\033[0m'
         else:

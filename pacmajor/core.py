@@ -67,7 +67,10 @@ class Pacmajor(DisplayObject):
                 self.title("Installing following packages")
                 for pkg in dep.stock_deps:
                     print_item(pkg.name)
-            PkgbuildMenu(self, pdb, dep.aur_deps + dep.targetpkgs).run()
+            aurinfo = builds.copy()
+            for pkg in dep.aur_deps:
+                aurinfo[pkg] = aur.request('info', pkg.name)
+            PkgbuildMenu(self, pdb, dep.aur_deps + dep.targetpkgs, builds).run()
             # TODO: recheck dependencies
             for pkg in dep.aur_deps + dep.targetpkgs:
                 pdb.commit(pkg.name, "Edited package file")
