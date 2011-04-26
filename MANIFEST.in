@@ -1,0 +1,5 @@
+include pacmajor/*.py
+include scripts/*
+include README.rst
+include setup.py
+include pacmajor.conf

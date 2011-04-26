@@ -11,7 +11,7 @@ setup(name='pacmajor',
         'License :: OSI Approved :: MIT License',
         ],
     packages=['pacmajor'],
-    package_data=['pacmajor.conf'],
+    package_data={'pacmajor': ['pacmajor.conf']},
     scripts=['scripts/major'],
     requires=['pyarchive'],
     )
