@@ -19,6 +19,9 @@ GIT_IGNORE = """
 class PkgBuild(object):
 
     def __init__(self, file):
+        self.update(file)
+
+    def update(self, file):
         self.vars = parser.parse_vars(file)
         self.pkgver = self.vars['pkgver']
         self.pkgrel = self.vars['pkgrel']
@@ -146,6 +149,12 @@ class TemporaryDB(object):
             self.states[pkg, file] = display.FILE_VIEWED
         else:
             self.states[pkg, file] = display.FILE_MODIFIED
+            pobj = self.packages[pkg]
+            try:
+                with open(os.path.join(self.dir, pkg, 'PKGBUILD'), 'rb') as f:
+                    pobj.update(f)
+            except Exception as e:
+                print(e)
 
     def build_package(self, name):
         with self.manager.section("Building " + name) as sect:
