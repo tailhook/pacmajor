@@ -136,6 +136,13 @@ class InstallMenu(Menu):
             for fn in archive.Archive(self.pkgdb.package_file(name)):
                 print(name + ':', fn.filename)
 
+    def cmd_log(self, letters:'LETTERS') -> ('bl', 'buildlog', 'build_log'):
+        """show build log files"""
+        all = []
+        for name in self.letters_to_names(letters):
+            all.extend(self.pkgdb.buildlog_files(name))
+        self.manager.toolset.pager(*all)
+
     def cmd_namcap(self, letters:'LETTERS') -> ('c', 'namcap'):
         """check package with namcap"""
         self.manager.toolset.namcap(*(self.pkgdb.package_file(name)

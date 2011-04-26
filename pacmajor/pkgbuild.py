@@ -180,5 +180,14 @@ class TemporaryDB(object):
             '{0.pkgname}-{0.pkgver}-{0.pkgrel}-{1[CARCH]}{1[PKGEXT]}'
             .format(pkg, self.config))
 
+    def buildlog_files(self, name):
+        pkg = self.packages[name]
+        yield os.path.join(self.dir, name,
+            '{0.pkgname}-{0.pkgver}-{0.pkgrel}-{1[CARCH]}-build.log'
+            .format(pkg, self.config))
+        yield os.path.join(self.dir, name,
+            '{0.pkgname}-{0.pkgver}-{0.pkgrel}-{1[CARCH]}-package.log'
+            .format(pkg, self.config))
+
 def tmpdb(manager):
     return TemporaryDB(manager)
