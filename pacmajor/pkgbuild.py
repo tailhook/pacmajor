@@ -32,7 +32,7 @@ class PkgBuild(object):
         self.makedepends = [k.split('>=')[0]
             for k in self.vars.get('makedepends', ())]
         self.depends = [k.split('>=')[0]
-            for k in self.vars.get('makedepends', ())]
+            for k in self.vars.get('depends', ())]
         self.name = self.vars['pkgname']
         self.install = self.vars.get('install')
         self.source = self.vars.get('source', ())
