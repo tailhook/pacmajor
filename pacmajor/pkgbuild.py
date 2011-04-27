@@ -33,6 +33,8 @@ class PkgBuild(object):
             for k in self.vars.get('makedepends', ())]
         self.depends = [k.split('>=')[0]
             for k in self.vars.get('depends', ())]
+        self.provides = [k.split('=')[0]
+            for k in self.vars.get('provides', ())]
         self.name = self.vars['pkgname']
         self.install = self.vars.get('install')
         self.source = self.vars.get('source', ())
@@ -188,6 +190,8 @@ class TemporaryDB(object):
         with self.manager.section("Building " + name) as sect:
             self.manager.toolset.build(
                 cwd=os.path.join(self.dir, name))
+            # makepkg changes version for git packages
+            self.file_check_state(name, 'PKGBUILD')
             nfiles = 0
             nbytes = 0
             for file in archive.Archive(self.package_file(name)):

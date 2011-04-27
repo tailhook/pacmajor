@@ -48,15 +48,18 @@ class DependencyChecker(object):
 
     def stage_sort(self):
         stages = []
-        items = {pkg.name: pkg for pkg in self.targetpkgs + self.aur_deps}
-        names = set(items)
+        items = {}
+        names = set()
+        for pkg in self.targetpkgs + self.aur_deps:
+            items[pkg.name] = pkg
+            names.add(pkg.name)
+            names.update(pkg.provides)
         while names:
             cur = []
-            for nn in list(names):
+            for nn in items:
                 pkg = items[nn]
                 if not names & (set(pkg.depends) | set(pkg.makedepends)):
                     cur.append(nn)
-                    names.remove(nn)
             if not stages:
                 stock = []
                 aur = []
@@ -71,4 +74,8 @@ class DependencyChecker(object):
                     stages.append(('aur', aur))
             else:
                 stages.append(('aur', cur))
+            for nn in cur:
+                pkg = items.pop(nn)
+                names.remove(pkg.name)
+                names.difference_update(pkg.provides)
         return stages
