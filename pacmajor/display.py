@@ -48,10 +48,15 @@ class DisplayObject(object):
     def pkgfile(self, mode, pkgname, fn, pkginfo, aurinfo):
         if self.color:
             if fn == 'PKGBUILD':
-                return ('{0} \033[37;1m{1}\033[22m/{2}'
-                    ' \033[34m(ver: {3.pkgver}-{3.pkgrel} votes: {4[NumVotes]}{5})\033[0m'
-                    .format(modes[mode], pkgname, fn, pkginfo, aurinfo,
-                        ' dated' if int(aurinfo['OutOfDate']) else ''))
+                if aurinfo:
+                    return ('{0} \033[37;1m{1}\033[22m/{2}'
+                        ' \033[34m(ver: {3.pkgver}-{3.pkgrel} votes: {4[NumVotes]}{5})\033[0m'
+                        .format(modes[mode], pkgname, fn, pkginfo, aurinfo,
+                            ' dated' if int(aurinfo['OutOfDate']) else ''))
+                else:
+                    return ('{0} \033[37;1m{1}\033[22m/{2}'
+                        ' \033[34m(ver: {3.pkgver}-{3.pkgrel} not in AUR)\033[0m'
+                        .format(modes[mode], pkgname, fn, pkginfo))
             else:
                 return modes[mode]+' '+' '*len(pkgname) + ' \033[34m' + fn + '\033[0m'
         else:
@@ -97,11 +102,13 @@ class DisplayObject(object):
         readline.parse_and_bind('tab: complete')
         readline.set_completer(func)
 
-    def menu(self, title, names, cmds=None):
+    def menu(self, title, names, top_info=(), cmds=None):
         attr = tty.tcgetattr(sys.stdin)
         try:
             self.cprint(TITLE, '==>', title)
             items = {}
+            for i in top_info:
+                self.cprint(b'34', '    ', i)
             for c, (n, t) in letterify(names):
                 print('    ', c, t)
                 items[c] = n
@@ -243,6 +250,9 @@ class Menu(object):
         self.manager = manager
         self.title = title
 
+    def top_info(self):
+        return iter(())
+
     def cmd_help(self) -> ('h', '?', 'help'):
         """show help"""
         mlen = max(len(mv)+len(a[0]) for a, mv, name in self.command_alldescr)+1
@@ -273,7 +283,7 @@ class Menu(object):
         while True:
             try:
                 self.manager.set_completer(self.completer)
-                res = self.manager.menu(self.title, self.items(),
+                res = self.manager.menu(self.title, self.items(), self.top_info(),
                     self.command_descr)
             except KeyboardInterrupt:
                 self.cmd_quit()

@@ -53,33 +53,27 @@ class Pacmajor(DisplayObject):
                         stock[n] = p
             act.add('found {0}'.format(len(stock)))
 
-        builds = {}
-        if set(names) - set(stock):
-            with self.action('Searching in AUR') as act:
-                for n in names:
-                    try:
-                        info = aur.request('info', n)
-                    except LookupError:
-                        continue
-                    builds[n] = info
-                act.add('found {0}'.format(len(builds)))
-        else:
-            if self.verbosity:
-                self.title("All names found in packages, starting pacman")
+        nbuild = set(names) - set(stock)
+        if not nbuild:
+            self.title("All names found in packages, starting pacman")
             self.toolset.install_sync(*names)
             return
         with pkgbuild.tmpdb(self) as pdb:
             with self.section('Gathering PKGBUILDs and dependencies') as act:
-                dep = DependencyChecker(builds.keys())
+                dep = DependencyChecker(nbuild)
                 dep.check(self, pdb)
             if dep.stock_deps:
                 self.title("Installing following packages")
                 for pkg in dep.stock_deps:
                     print_item(pkg.name)
-            aurinfo = builds.copy()
-            for pkg in dep.aur_deps:
-                aurinfo[pkg] = aur.request('info', pkg.name)
-            PkgbuildMenu(self, pdb, dep.aur_deps + dep.targetpkgs, builds).run()
+            aurinfo = {}
+            for pkg in dep.aur_deps + dep.targetpkgs:
+                try:
+                    aurinfo[pkg.name] = aur.request('info', pkg.name)
+                except LookupError as e:
+                    pass
+            PkgbuildMenu(self, pdb, dep.aur_deps + dep.targetpkgs, aurinfo,
+                absent_packages=dep.not_found).run()
             # TODO: recheck dependencies
             for pkg in dep.aur_deps + dep.targetpkgs:
                 pdb.commit(pkg.name, "Edited package file")

@@ -9,23 +9,29 @@ from .display import Menu, DoneException, extractcommands
 class PkgbuildMenu(Menu):
     visible_commands = ['done', 'd', 'e', 'h', 'q']
 
-    def __init__(self, manager, pkgdb, pkgs, aurinfo):
+    def __init__(self, manager, pkgdb, pkgs, aurinfo,
+        absent_packages=()):
         super().__init__(manager, "Package files")
         self.pkgs = pkgs
         self.pkgdb = pkgdb
         self.all_files = []
         self.pkgmap = {}
         self.aurinfo = aurinfo
+        self.absent_packages = absent_packages
         for pkg in self.pkgs:
             self.pkgmap[pkg.name] = pkg
             for fn in pkg.files_to_edit():
                 self.all_files.append((pkg.name, fn))
 
+    def top_info(self):
+        if self.absent_packages:
+            yield 'not found: '+', '.join(self.absent_packages)
+
     def items(self):
         for pn, fn in self.all_files:
             yield (pn, fn), self.manager.pkgfile(
                 self.pkgdb.file_get_state(pn, fn), pn, fn,
-                self.pkgmap[pn], self.aurinfo[pn])
+                self.pkgmap[pn], self.aurinfo.get(pn))
 
     def select(self, res):
         self.pkgdb.file_backup(*res)

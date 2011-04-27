@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from . import rorepo
+from .pkgbuild import PackageNotFound
 
 class DependencyChecker(object):
 
@@ -10,10 +11,11 @@ class DependencyChecker(object):
         self.stock_deps = []
         self.aur_deps = []
         self.targetpkgs = []
+        self.not_found = set()
 
     def check(self, manager, pkgdb):
         future = list(self.targets)
-        already = set(future)
+        already = set()
         localrepo = manager.localrepo
         all_stock = defaultdict(list)
         for k, v in manager.repos.items():
@@ -26,7 +28,11 @@ class DependencyChecker(object):
             if name in all_stock:
                 self.stock_deps.append(name)
                 continue
-            pkg = pkgdb.fetch(name)
+            try:
+                pkg = pkgdb.fetch(name)
+            except PackageNotFound:
+                self.not_found.add(name)
+                continue
             for dep in pkg.makedepends:
                 if dep in already:
                     continue

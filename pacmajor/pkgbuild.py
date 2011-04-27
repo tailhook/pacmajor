@@ -16,6 +16,9 @@ GIT_IGNORE = """
 *.bak
 """
 
+class PackageNotFound(Exception):
+    pass
+
 class PkgBuild(object):
 
     def __init__(self, file):
@@ -32,6 +35,7 @@ class PkgBuild(object):
             for k in self.vars.get('makedepends', ())]
         self.name = self.vars['pkgname']
         self.install = self.vars.get('install')
+        self.source = self.vars.get('source', ())
 
     def __repr__(self):
         return '<PKGBUILD {0}>'.format(self.name)
@@ -40,6 +44,16 @@ class PkgBuild(object):
         yield 'PKGBUILD'
         if self.install:
             yield self.install
+
+    def source_files(self):
+        yield 'PKGBUILD'
+        if self.install:
+            yield self.install
+        for i in self.source:
+            if '://' in source:
+                continue
+            yield i
+
 
 class TemporaryDB(object):
 
@@ -76,7 +90,21 @@ class TemporaryDB(object):
             .format(name)
         tarname = '{0}/{1}.tar.gz'.format(self.dir, name)
         self.manager.toolset.download(output=tarname, url=tarurl)
-        self.manager.toolset.unpack(outdir=self.dir, filename=tarname)
+        if not os.path.exists(tarname) or not os.path.getsize(tarname):
+            if not self.manager.config.get('local_packages'):
+                raise PackageNotFound(name)
+            localdir = os.path.join(self.manager.config['local_packages'], name)
+            if os.path.exists(localdir):
+                with open(os.path.join(localdir, 'PKGBUILD'), 'rb') as f:
+                    pkg = PkgBuild(f)
+                os.mkdir(os.path.join(self.dir, name))
+                for sname in pkg.source_files():
+                    shutil.copyfile(os.path.join(localdir, sname),
+                        os.path.join(self.dir, name, sname))
+            else:
+                raise PackageNotFound(name)
+        else:
+            self.manager.toolset.unpack(outdir=self.dir, filename=tarname)
         with open(os.path.join(self.dir, name, '.gitignore'), 'wt') as f:
             f.write(GIT_IGNORE)
         with open(os.path.join(self.dir, name, 'PKGBUILD'), 'rb') as f:
