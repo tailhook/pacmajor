@@ -89,8 +89,8 @@ class Pacmajor(DisplayObject):
                     for name in pkgs:
                         pdb.build_package(name)
                     InstallMenu(self, pdb, pkgs).run()
-                    normal = [pdb.package_file(p) for p in pkgs if p in builds]
-                    deps = [pdb.package_file(p) for p in pkgs if p not in builds]
+                    normal = [pdb.package_file(p) for p in pkgs if p in nbuild]
+                    deps = [pdb.package_file(p) for p in pkgs if p not in nbuild]
                     if normal:
                         self.toolset.install_file(*normal)
                     if deps:
