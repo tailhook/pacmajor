@@ -21,24 +21,25 @@ class Tool(object):
             for i, arg in enumerate(self.cmdline)
             if arg.startswith('$')}
 
-    def __call__(self, *args, **kw):
+    def __call__(self, *args, cwd=None, env=None, filter=None, **kw):
         """Execute the tool with pager if needed"""
         cmdline = list(self.cmdline)
         cmdline.extend(args)
-        filter = kw.pop('filter', None)
-        cwd = kw.pop('cwd', None)
         for k, v in kw.items():
             cmdline[self.indexes[k]] = v
         self.manager.commandline(cmdline)
         if filter:
-            proc = subprocess.Popen(cmdline, stdout=filter.stdin, cwd=cwd)
+            proc = subprocess.Popen(cmdline, stdout=filter.stdin,
+                cwd=cwd, env=env)
             return proc.wait()
         elif self.pager and self.pager.enabled:
-            proc = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=cwd)
+            proc = subprocess.Popen(cmdline, stdout=subprocess.PIPE,
+                cwd=cwd, env=env)
             self.pager.filter(proc.stdout)
             return proc.wait()
         else:
-            proc = subprocess.Popen(cmdline, cwd=cwd)
+            proc = subprocess.Popen(cmdline,
+                cwd=cwd, env=env)
             return proc.wait()
 
     def filter(self, pipe=None):
