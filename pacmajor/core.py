@@ -92,13 +92,6 @@ class Pacmajor(DisplayObject):
                 dir = os.path.join(self.config['git_dir'], i)
                 self.toolset.git('--git-dir='+dir,
                     'fetch', url.replace('$pkgname', i), *revbranches)
-                #tmpdir = tempfile.mkdtemp()
-                #try:
-                #    self.toolset.git('--git-dir='+dir, '--work-tree='+tmpdir,
-                #        'pull', '--ff-only',
-                #        url.replace('$pkgname', i), *revbranches, cwd=tmpdir)
-                #finally:
-                #    shutil.rmtree(tmpdir)
         if more:
             packages.update(remote_packages)
         if newpack:
