@@ -1,4 +1,8 @@
 import os.path
+import sys
+import subprocess
+import tempfile
+import shutil
 
 from .util import Toolset
 from .display import DisplayObject
@@ -39,6 +43,74 @@ class Pacmajor(DisplayObject):
                 for name in val:
                     self.repos.pop(name, None)
                     self.repos.pop(name+'.db', None)
+
+    def backup_git(self, targets=None, packages=None):
+        if targets is None:
+            targets = self.config['git_backups']
+        if not targets:
+            print("Configure some targets in pacmajor.conf", file=sys.stderr)
+            sys.exit(1)
+        if packages is None:
+            more = True
+            packages = [n for n in os.listdir(self.config['git_dir'])
+                          if not n.startswith('.')]
+        else:
+            more = False
+        for tgt in targets:
+            self.backup_single(tgt, packages, more=more)
+
+    def backup_single(self, name, packages, more):
+        packages = set(packages)
+        url = self.config.get(name + '_url')
+        branches = self.config.get(name + '_branches')
+        pkglist = self.config.get(name + '_listpackages')
+        newpack = self.config.get(name + '_newpackage')
+        if not url or not branches or not pkglist:
+            print(url, branches, pkglist)
+            print("Target {0!r} configured incorrectly".format(name),
+                file=sys.stderr)
+            return
+        remote_packages = set(subprocess.getoutput(pkglist).splitlines())
+        if more:
+            for i in remote_packages - packages:
+                with self.section('Creating local {0}'.format(i)):
+                    dir = os.path.join(self.config['git_dir'], i)
+                    self.toolset.git('init', '--bare', dir)
+        revbranches = []
+        for branch in branches:
+            r = ""
+            if branch.startswith('+'):
+                r = "+"
+                branch = branch[1:]
+            if ':' in branch:
+                r = r+':'.join(reversed(branch.split(':', 1)))
+            else:
+                r = r+branch+':'+branch
+            revbranches.append(r)
+        for i in remote_packages & packages:
+            with self.section('Pulling package {0}'.format(i)):
+                dir = os.path.join(self.config['git_dir'], i)
+                self.toolset.git('--git-dir='+dir,
+                    'fetch', url.replace('$pkgname', i), *revbranches)
+                #tmpdir = tempfile.mkdtemp()
+                #try:
+                #    self.toolset.git('--git-dir='+dir, '--work-tree='+tmpdir,
+                #        'pull', '--ff-only',
+                #        url.replace('$pkgname', i), *revbranches, cwd=tmpdir)
+                #finally:
+                #    shutil.rmtree(tmpdir)
+        if more:
+            packages.update(remote_packages)
+        if newpack:
+            for i in packages - remote_packages:
+                with self.section('Creating remote {0}'.format(i)):
+                    os.system(newpack.replace('$pkgname', i))
+                    remote_packages.add(i)
+        for i in remote_packages & packages:
+            with self.section('Pushing changes of {0}'.format(i)):
+                dir = os.path.join(self.config['git_dir'], i)
+                self.toolset.git('--git-dir='+dir, 'push',
+                    url.replace('$pkgname', i), *branches)
 
     def install_packages(self, names):
         stock = {}

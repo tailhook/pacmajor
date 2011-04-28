@@ -33,6 +33,10 @@ def get_options():
     ap.add_argument('-r', '--root',
         help="Alternative installation root",
         dest="root", default="/")
+    action = ap.add_mutually_exclusive_group()
+    action.add_argument('-P', '--git-pull-push', metavar="TARGET",
+        help="Pull remote changes and push our changes",
+        dest="backup", default=None, nargs='*')
     return ap
 
 def main():
@@ -48,8 +52,12 @@ def main():
         root=options.root,
         color=options.color)
 
-    if options.packages:
-        manager.install_packages(options.packages)
+    if options.backup is not None:
+        manager.backup_git(targets=options.backup or None,
+            packages=options.packages or None)
+    else:
+        if options.packages:
+            manager.install_packages(options.packages)
 
 if __name__ == '__main__':
     main()
