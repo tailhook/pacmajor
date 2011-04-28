@@ -98,7 +98,10 @@ class VarArray(VarValue):
         cur = ""
         for i in self.value:
             if i.typ == 'var':
-                cur += vars[i.value[1:]]
+                try:
+                    cur += vars[i.value[1:]]
+                except KeyError:
+                    cur += os.environ.get(i.value[1:], '')
             elif i.typ in {'ws', 'newline'}:
                 if cur:
                     result.append(cur)
