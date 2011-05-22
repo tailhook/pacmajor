@@ -131,7 +131,7 @@ class Function(Node):
 def tokenize(file):
     last_token = 0
     last_line = 0
-    data = file.read().decode('ascii')
+    data = file.read().decode('utf-8')
     for m in re_tokenize.finditer(data):
         val = m.group(0)
         typ = next(iter(k for k, v in m.groupdict().items() if v is not None))
