@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='pacmajor',
-    version='0.1',
+    version='0.1.2',
     description='Package manager for Arch Linux (pacman frontend)',
     author='Paul Colomiets',
     author_email='pc@gafol.net',

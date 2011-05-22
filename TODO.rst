@@ -11,6 +11,9 @@ Version 0.1
 * check file status using git rather comparing with diff
 * handle dependency changes during pkgbuild menu correctly
 * switch between git/no-git packages
+* produce a python package based on distutils info
+* handle configuration files in git
+* add git log observation in pkgbuild menu
 
 Version 0.2
 -----------
