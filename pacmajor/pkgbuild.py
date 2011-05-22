@@ -1,6 +1,7 @@
 import tempfile
 import shutil
 import os.path
+import stat
 from functools import partial
 
 import archive
@@ -198,14 +199,19 @@ class TemporaryDB(object):
             self.file_check_state(name, 'PKGBUILD')
             nfiles = 0
             nbytes = 0
+            ndirs = 0
             for file in archive.Archive(self.package_file(name)):
-                if name.startswith('.'):  # all hidden in the root are special
+                if file.filename.startswith('.'):  # all hidden in the root are special
                     continue
-                nfiles += 1
-                nbytes += len(file.read())  # TODO: get size from libarchive
+                if stat.S_ISREG(file.mode):
+                    nfiles += 1
+                    nbytes += file.size
+                elif stat.S_ISDIR(file.mode):
+                    ndirs += 1
 
         self.packages[name].build_info = {
             'files': nfiles,
+            'dirs': ndirs,
             'unpacked': nbytes,
             'elapsed': sect.elapsed,
             }

@@ -65,7 +65,7 @@ class DisplayObject(object):
     def pkgname(self, name, info):
         return ("{2} {0}(built in {3[elapsed]:.2f}s,"
             " size: {4},"
-            " files: {3[files]}){1}"
+            " files: {3[files]} dirs: {3[dirs]}){1}"
             .format("\033[34m", "\033[0m", name, info,
                 self.fsize(info['unpacked'])))
 
