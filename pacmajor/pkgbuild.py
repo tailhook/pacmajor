@@ -35,6 +35,7 @@ class PkgBuild(object):
             for k in self.vars.get('depends', ())]
         self.provides = [k.split('=')[0]
             for k in self.vars.get('provides', ())]
+        self.arch = self.vars['arch']
         self.name = self.vars['pkgname']
         self.install = self.vars.get('install')
         self.source = self.vars.get('source', ())
@@ -211,9 +212,13 @@ class TemporaryDB(object):
 
     def package_file(self, name):
         pkg = self.packages[name]
+        if pkg.arch == ['any']:
+            arch = 'any'
+        else:
+            arch = self.config['CARCH']
         return os.path.join(self.dir, name,
-            '{0.pkgname}-{0.pkgver}-{0.pkgrel}-{1[CARCH]}{1[PKGEXT]}'
-            .format(pkg, self.config))
+            '{0.pkgname}-{0.pkgver}-{0.pkgrel}-{arch}{1[PKGEXT]}'
+            .format(pkg, self.config, arch=arch))
 
     def buildlog_files(self, name):
         pkg = self.packages[name]
