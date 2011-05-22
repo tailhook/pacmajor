@@ -33,6 +33,9 @@ def get_options():
     ap.add_argument('-r', '--root',
         help="Alternative installation root",
         dest="root", default="/")
+    ap.add_argument('-k', '--keep-files',
+        help="Keep temporary files needed to build package",
+        dest="keep_files", default=False, action="store_true")
     action = ap.add_mutually_exclusive_group()
     action.add_argument('-P', '--git-pull-push', metavar="TARGET",
         help="Pull remote changes and push our changes",
@@ -50,6 +53,7 @@ def main():
         interactive=options.interactive,
         verbosity=options.verbosity,
         root=options.root,
+        keep_files=options.keep_files,
         color=options.color)
 
     if options.backup is not None:

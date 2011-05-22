@@ -20,11 +20,13 @@ class Pacmajor(DisplayObject):
         interactive=True,
         verbosity=1,
         root='/',
+        keep_files=False,
         color=True):
         self.interactive = interactive
         self.verbosity = verbosity
         self.color = color
         self.root = root
+        self.keep_files = keep_files
         with open('/etc/pacmajor.conf', 'rb') as file:
             self.config = parser.parse_vars(file)
         self.toolset = Toolset(self)

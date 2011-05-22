@@ -76,7 +76,10 @@ class TemporaryDB(object):
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
-        shutil.rmtree(self.dir)
+        if self.manager.keep_files:
+            self.manager.title("Files are left in {0}".format(self.dir))
+        else:
+            shutil.rmtree(self.dir)
 
     def fetch(self, name):
         if not os.path.exists(self.gitdir):
